@@ -1,14 +1,9 @@
 import boto3
-import json
 import os
 
 # set ec2_tag=shoutcast
 # set region_list=sa-east-1,us-west-2
 # set action=start
-
-ec2_tag = os.environ.get("ec2_tag")
-region_list = os.environ.get("region_list").split(",")  # comma-delimited value
-action = os.environ['action']
 
 
 def toggle_instances(region, toggle_action, instances):
@@ -31,7 +26,7 @@ def toggle_instances(region, toggle_action, instances):
     return response
 
 
-def get_instance_list(region):
+def get_instance_list(region, tag_name):
 
     instance_list = []
 
@@ -42,7 +37,7 @@ def get_instance_list(region):
     ec2 = session.resource('ec2')
 
     instances = ec2.instances.filter(Filters=[{
-        'Name': 'tag:'+ec2_tag,
+        'Name': 'tag:'+tag_name,
         'Values': ['*']}])
 
     for instance in instances:
@@ -54,8 +49,12 @@ def get_instance_list(region):
 
 def run_now():
 
+    ec2_tag = os.environ.get("ec2_tag")  # any ec2 tag name
+    region_list = os.environ.get("region_list").split(",")  # comma-delimited value e.g us-east-1,us-east-2
+    action = os.environ['action']  # start/stop
+
     for region in region_list:
-        this_list = get_instance_list(region)
+        this_list = get_instance_list(region, ec2_tag)
         if this_list:
             toggle_instances(region, action, this_list)
         else:
@@ -73,6 +72,9 @@ def lambda_handler(event, context):
 def main():
 
     run_now()
+
+    return_message = 'Completed Instances action of: ' + action
+    print(return_message)
 
 
 if __name__ == '__main__': main()
